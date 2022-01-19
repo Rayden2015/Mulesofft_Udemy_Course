@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="1f29104d-2a29-4e28-898f-d9d8bf08d2d8" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="12607235-7294-48ea-8e78-d733064e7264" >
+		<db:my-sql-connection host="127.0.0.1" port="3306" user="root" password="toor" database="mulesoft_course"/>
+	</db:config>
+	<flow name="mule_udemy_projectFlow" doc:id="1a8521a6-9b99-4f80-adcc-d64561ef0298" >
+		<http:listener doc:name="Listener" doc:id="01260c44-b1db-4066-910e-0cde43ef267d" config-ref="HTTP_Listener_config" path="/home"/>
+		<logger level="INFO" doc:name="Logger" doc:id="1631b646-670f-4d82-9803-ce73620ab0a7" message='#["Log Start : " ++ flow.name]'/>
+		<set-payload value='#["this is the basic flow"]' doc:name="Set Payload" doc:id="28f378f5-2bd5-4fe3-9d0a-cd55f186cc91" />
+	</flow>
+	<flow name="getCustomers" doc:id="730c6e7b-5193-49a4-ba00-3b14181d6689" >
+		<http:listener doc:name="Listener" doc:id="1353681d-bc19-47c2-bf03-b59b5f2a1a6b" config-ref="HTTP_Listener_config" path="/database"/>
+		<db:select doc:name="select_customers" doc:id="00893a66-3da0-4847-b10a-7e0310c8432b" config-ref="Database_Config1">
+			<reconnect />
+			<db:sql ><![CDATA[select * from customers]]></db:sql>
+		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="bc412487-2d14-451a-bd30-a6fd91b5711c" message="#[%dw 2.0&#10;&#10;output application/json&#10;---&#10;payload]"/>
+		<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;payload]' doc:name="Set Payload" doc:id="4259c78f-c001-4490-a46c-c79d70b1789d" />
+	</flow>
+	<flow name="addCustomers" doc:id="40e136e8-afdd-4305-ba46-936d65572249" >
+		<http:listener doc:name="Listener" doc:id="8ac7b4f1-5859-49f5-b024-73e077c2cf9c" config-ref="HTTP_Listener_config" path="/customers/add/"/>
+		<db:insert doc:name="Insert" doc:id="1d6d2a19-7b5d-4f03-b5b3-b6efc25b0b4e" config-ref="Database_Config1" autoGenerateKeys="true">
+			<db:sql ><![CDATA[insert into customers (customer_name) values (:clientName)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[output application/java
+---
+{
+	"clientName": payload.customer.customerName
+}]]]></db:input-parameters>
+		</db:insert>
+		<logger level="INFO" doc:name="Logger" doc:id="2a99a8ae-b198-4b54-a519-4eadd1ab26b7" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+	</flow>
+	<flow name="uriParams" doc:id="34da3eec-8ab6-48d1-8f59-f55d0c6aace2">
+		<http:listener doc:name="Listener" doc:id="4cadf2d7-70eb-4858-904a-e6498eb5d4ae" config-ref="HTTP_Listener_config" path="/uriParams/{ID}" />
+		<logger level="INFO" doc:name="Logger" doc:id="33c58bd9-8dc8-43c5-91ab-3ebf866b1cc3" />
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="e926adf3-b20d-4ae1-a7b9-62673c92a835" />
+	</flow>
+	<flow name="updateCustomerById" doc:id="b0fa26f1-6538-431d-90f4-7b28b39b80a9" >
+		<http:listener doc:name="Listener" doc:id="716ec240-825d-4b74-a4b3-6a8477d35fb1" config-ref="HTTP_Listener_config" path="/customers/{customerId}" allowedMethods="PUT"/>
+		<db:update doc:name="Update" doc:id="e3c3697a-b333-49d7-aa30-9adee31e90a3" config-ref="Database_Config1">
+			<db:sql ><![CDATA[update customers set customer_name = :newCustomerName where id = :clientId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'newCustomerName': payload.customer.customerName,
+	'clientId': attributes.uriParams.customerId
+}]]]></db:input-parameters>
+		</db:update>
+		<logger level="INFO" doc:name="Logger" doc:id="c5e30c5a-fcfe-41bf-8493-b563bcc6e3f1" message="#[%dw 2.0&#10;output application/json&#10;&#10;---&#10;payload]"/>
+	</flow>
+	<flow name="deleteCustomerById" doc:id="9604a6b2-cc56-4639-aad5-126681fbb988" >
+		<http:listener doc:name="Listener" doc:id="335f57fa-0cda-47a4-8223-5ea0323879ef" config-ref="HTTP_Listener_config" path="/customers/{customerId}" allowedMethods="DELETE"/>
+		<db:delete doc:name="Delete" doc:id="fac2169c-cd61-4b20-9686-4c9d8cebcea0" config-ref="Database_Config1">
+			<db:sql ><![CDATA[delete from customers  where id = :customerId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'customerId': attributes.uriParams.customerId
+	}]]]></db:input-parameters>
+		</db:delete>
+		<logger level="INFO" doc:name="Logger" doc:id="9be533ef-c28e-46f5-9a5b-d2368a57b475" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+		<choice doc:name="Choice" doc:id="2c9ce7d1-c084-4027-93ea-c3dd03864c18" >
+			<when expression="#[payload &gt; 0]">
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"success": "Customer Deleted successfully"&#10;}]' doc:name="Successfully Delete" doc:id="058189d3-f481-4c28-90a8-8a5a8ee85e76" />
+			</when>
+			<otherwise >
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"responseMessage":"Customer does not exist"&#10;}]' doc:name="Set Payload" doc:id="3542c44f-f82a-4c2e-8400-e6d97a7f66d4" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
