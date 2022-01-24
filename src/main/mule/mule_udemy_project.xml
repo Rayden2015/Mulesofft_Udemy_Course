@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="1f29104d-2a29-4e28-898f-d9d8bf08d2d8" >
 		<http:listener-connection host="0.0.0.0" port="8081" />
 	</http:listener-config>
@@ -67,8 +68,57 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"success": "Customer Deleted successfully"&#10;}]' doc:name="Successfully Delete" doc:id="058189d3-f481-4c28-90a8-8a5a8ee85e76" />
 			</when>
 			<otherwise >
-				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"responseMessage":"Customer does not exist"&#10;}]' doc:name="Set Payload" doc:id="3542c44f-f82a-4c2e-8400-e6d97a7f66d4" />
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"responseMessage":"Customer does not exist"&#10;}]' doc:name="Customer does not exist" doc:id="3542c44f-f82a-4c2e-8400-e6d97a7f66d4" />
 			</otherwise>
 		</choice>
+	</flow>
+	<flow name="cretae_new_file" doc:id="3cbcff86-fdc4-4a56-8001-f466fb46b6f0" >
+		<http:listener doc:name="Listener" doc:id="6c96f8f2-376c-4caa-a7b1-31e4fdad974c" config-ref="HTTP_Listener_config" path="/writefile" allowedMethods="POST"/>
+		<logger level="INFO" doc:name="Logger" doc:id="32a709b7-ef62-4761-a6de-461beae6f953" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+		<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload.filename]" doc:name="Set Variable Filename" doc:id="c4b59c2e-0353-4b20-ad3f-722875abb37f" variableName="Filename"/>
+		<file:write doc:name="Write" doc:id="11d66b80-93a3-46ad-a278-629bd1b33632" config-ref="File_Config" path='#["infolder/" ++ vars.Filename ++ ".csv"]'>
+			<file:content ><![CDATA[#[%dw 2.0
+output application/csv
+---
+payload.customer]]]></file:content>
+		</file:write>
+		<logger level="INFO" doc:name="Logger" doc:id="b2a048fc-915b-4710-b1d3-ae8af4a3be5e" message="#[payload]"/>
+	</flow>
+	<flow name="poll_directory_for_new_files_updates" doc:id="d4aa3225-d3b2-490a-87ae-33a5952a1a9f" >
+		<file:listener doc:name="On New or Updated File" doc:id="782520e6-284f-4a5a-bd0e-f05789581b75" config-ref="File_Config" autoDelete="true" moveToDirectory="/Users/nurudin/AnypointStudio/studio-workspace/mule_udemy_project/Files/outfolder" directory="/Users/nurudin/AnypointStudio/studio-workspace/mule_udemy_project/Files/infolder">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="288d07d4-334f-4504-adbb-ff25479410bd" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"lastModifiedTime": attributes.lastModifiedTime,&#10;	"creationTime": attributes.creationTime,&#10;	"filename": attributes.fileName ++ " moved to outfolder"&#10;}]'/>
+	</flow>
+	<flow name="readFile" doc:id="5a556771-d5f5-4b0c-a4ae-d9f43853b0fe" >
+		<http:listener doc:name="Listener" doc:id="016c0296-fd21-4908-824a-f172bc91ce09" config-ref="HTTP_Listener_config" path="/readfile/{fileName}"/>
+		<file:read doc:name="Read from file" doc:id="76a1d1f1-433e-4581-aa5d-e2a25a5b9b11" config-ref="File_Config" path='#["outfolder/" ++ attributes.uriParams.fileName ++ ".csv"]'/>
+		<logger level="INFO" doc:name="Logger" doc:id="912a2673-0fa8-48ed-bf6d-3ce66f89ee73" message="#[%dw 2.0&#10;&#10;output application/json&#10;---&#10;payload]"/>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Set Payload" doc:id="a557446b-fb7e-4553-88b4-416e7f58855d" />
+	</flow>
+	<flow name="list_files_path_basic" doc:id="24237109-697f-4575-a93f-6f3061a521df" >
+		<http:listener doc:name="Listener" doc:id="afff8515-c218-458d-a07c-c8885a8ce1c5" config-ref="HTTP_Listener_config" path="/listFilesBasic" allowedMethods="GET"/>
+		<file:list doc:name="List all files in folder" doc:id="81dd43e8-c9dd-4b82-b4d3-6982ccc87813" config-ref="File_Config" directoryPath="/Users/nurudin/AnypointStudio/studio-workspace/mule_udemy_project/Files/outfolder"/>
+		<logger level="INFO" doc:name="Logger" doc:id="8837a1c5-4758-49c3-8291-605452e2b5c4" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+		<logger level="INFO" doc:name="Log datatype of payload" doc:id="17a05876-b620-4f6e-8703-146bba87d47b" message='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"dataType": typeOf(payload)&#10;}]'/>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Set Payload" doc:id="cf6a4d40-2ac6-4932-abd4-231565444284" />
+	</flow>
+	<flow name="list_all_files_in_folder_intermediate" doc:id="a84f1d84-5bb8-4a5e-bcb0-d2d6b35e85f7" >
+		<http:listener doc:name="Listener" doc:id="0d2bc0d3-6cd4-40fd-af8a-bb03dd30c988" config-ref="HTTP_Listener_config" path="/listfilesadvance"/>
+		<logger level="INFO" doc:name="Logger" doc:id="87af40a9-15a6-4700-b50b-9d8698c975c0" message="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]"/>
+		<file:list doc:name="List" doc:id="a82d8be3-c521-47eb-adc0-8c49e223ca35" config-ref="File_Config" directoryPath="outfolder" />
+		<foreach doc:name="For Each" doc:id="04e00060-7fe8-4614-84af-819d281d0002" >
+			<choice doc:name="validate if item is folder or file" doc:id="9ca102ce-a9c0-49bd-af87-7957d94a6b73" >
+				<when expression="#[attributes.directory == false]">
+					<logger level="INFO" doc:name="Files" doc:id="41f33e13-1f3f-4bc7-840c-4c3665749ca3" message='#[%dw 2.0&#10;output applicaiton/json&#10;---&#10;{&#10;	"message": "It is a file : " ++ attributes.path&#10;}]'/>
+				</when>
+				<otherwise>
+					<logger level="INFO" doc:name="Folder" doc:id="b9a29c1c-2eaf-43ea-a5cc-fcd2b56c91b0" message='#[%dw 2.0&#10;output applicaiton/json&#10;---&#10;{&#10;	"message": "It is a folder : " ++ attributes.path&#10;}]'/>
+				</otherwise>
+			</choice>
+		</foreach>
+		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Return as a single payload" doc:id="4baf7fa4-6588-46f4-a982-1f3ea172182e" />
 	</flow>
 </mule>

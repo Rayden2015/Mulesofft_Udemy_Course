@@ -1,0 +1,7 @@
+{
+    "filename" : "file1",
+    "customer": {
+        "cusotmerId": "5",
+        "customerName": "Nurudin"
+    }
+}

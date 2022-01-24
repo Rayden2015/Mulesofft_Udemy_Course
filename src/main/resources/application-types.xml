@@ -13,6 +13,19 @@ type UserDefined = {|
 
 ]]></types:shape>
     </types:type>
+    <types:type name="fileExample" format="json">
+      <types:shape format="weave" example="examples/fileExample.json"><![CDATA[%dw 2.0
+
+type fileExample = {|
+  filename: String, 
+  customer: {|
+    cusotmerId: String, 
+    customerName: String
+  |}
+|} {"example": "{\\\"filename\\\":\\\"file1\\\",\\\"customer\\\":{\\\"cusotmerId\\\":\\\"5\\\",\\\"customerName\\\":\\\"Nurudin\\\"}}"}
+
+]]></types:shape>
+    </types:type>
   </types:catalog>
   <types:enrichment select="#1d6d2a19-7b5d-4f03-b5b3-b6efc25b0b4e">
     <types:processor-declaration>
@@ -37,6 +50,42 @@ type UserDefined = {|
       <types:input-event>
         <types:message>
           <types:payload type="UserDefined"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#3cbcff86-fdc4-4a56-8001-f466fb46b6f0">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="fileExample"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#32a709b7-ef62-4761-a6de-461beae6f953">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="fileExample"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#6c96f8f2-376c-4caa-a7b1-31e4fdad974c">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="fileExample"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#c4b59c2e-0353-4b20-ad3f-722875abb37f">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="fileExample"/>
         </types:message>
       </types:input-event>
     </types:processor-declaration>
