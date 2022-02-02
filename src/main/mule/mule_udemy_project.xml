@@ -12,6 +12,10 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="12607235-7294-48ea-8e78-d733064e7264" >
 		<db:my-sql-connection host="127.0.0.1" port="3306" user="root" password="toor" database="mulesoft_course"/>
 	</db:config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="2ab13b1e-2bd5-48fc-b4df-1a06ad74f5d2" basePath="/path" />
+	<http:request-config name="PropagateRequest" doc:name="HTTP Request configuration" doc:id="8fbba8ca-5b20-4083-8d86-2eb48c327b5c" basePath="/base" >
+		<http:request-connection host="localhost" port="8081" />
+	</http:request-config>
 	<flow name="mule_udemy_projectFlow" doc:id="1a8521a6-9b99-4f80-adcc-d64561ef0298" >
 		<http:listener doc:name="Listener" doc:id="01260c44-b1db-4066-910e-0cde43ef267d" config-ref="HTTP_Listener_config" path="/home"/>
 		<logger level="INFO" doc:name="Logger" doc:id="1631b646-670f-4d82-9803-ce73620ab0a7" message='#["Log Start : " ++ flow.name]'/>
@@ -120,5 +124,36 @@ payload.customer]]]></file:content>
 			</choice>
 		</foreach>
 		<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Return as a single payload" doc:id="4baf7fa4-6588-46f4-a982-1f3ea172182e" />
+	</flow>
+	<flow name="default-error-handling" doc:id="14ba168c-3313-4670-8d30-c5c8d0327d1c" >
+		<http:listener doc:name="Listener" doc:id="e9f2b28d-a7f7-442e-8dfa-d0e78ec2865a" config-ref="HTTP_Listener_config" path="/default-error-handler"/>
+		<logger level="INFO" doc:name="Logger" doc:id="c022843b-1e37-455f-9868-92923dc46839" />
+		<http:request method="GET" doc:name="Request" doc:id="849bd0f1-66db-46c4-ae67-43975e8484ba" config-ref="HTTP_Request_configuration" path="/test"/>
+	</flow>
+	<flow name="on-error-basic" doc:id="8d864501-d2bf-4266-ae91-5eaaeb7a1c91" >
+		<http:listener doc:name="Listener" doc:id="32dbbaad-eab8-4c04-882d-497a1dbe4198" config-ref="HTTP_Listener_config" path="/on-error-basic"/>
+		<http:request method="GET" doc:name="Request" doc:id="6ba8dc0a-1028-4b07-8d62-86196259ddc8" config-ref="PropagateRequest" path="/test"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f1c767c2-056b-4198-acc4-f3e8962b04dc" message='#["Log after request : On Error Continue"]'/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="Log On Error Continue" doc:id="cc18d6e3-657d-48a9-b693-e1be8880a1c4" type="ANY">
+				<logger level="INFO" doc:name="Logger" doc:id="9aa9b4bf-2ffc-4ec8-84ff-0cf3ff5e9878" message='#["Error Handler : On Error Continue log"]'/>
+				<set-payload value='#[%dw 2.0&#10;&#10;output application/json&#10;---&#10;{&#10;	"message": "on error continue log",&#10;	"error": error.description&#10;}]' doc:name="Set Payload" doc:id="f0870b38-6bf4-4a1b-b346-2621b598dd75" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="on-error-propagate" doc:id="71feb4fe-84fc-4d36-9881-49d7ff3fb328" >
+		<http:listener doc:name="Listener" doc:id="d7c42055-a8a0-4e21-9ad3-73774e3cd5e9" config-ref="HTTP_Listener_config" path="/on-error-propagate"/>
+		<http:request method="GET" doc:name="Request" doc:id="63d2566f-386e-4d2c-b6e8-e2b61964341b" config-ref="PropagateRequest" path="/test"/>
+		<logger level="INFO" doc:name="Logger" doc:id="600f8b89-22a3-4e62-a836-b527b5028b4f" message='#["**** Log after request : On Error Propagate"]'/>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0783f330-14a4-4c8b-9613-fba14d8023a5" type="ANY">
+				<logger level="ERROR" doc:name="On Error Propagate Logger" doc:id="bc1259df-03fa-46ba-9349-cb3a62bb70ac" message='"Error Handler : On Error Propagate" '/>
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"error":"On Error Propagate",&#10;	"message": error.description&#10;}]' doc:name="Set Payload" doc:id="9e68137e-4b00-4ef2-9b17-293618fc20cf" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="global_error_handler" doc:id="c6d2fe9a-f29a-4283-8c19-ba09040afbd6" >
+		<http:listener doc:name="Listener" doc:id="b3401645-3a7c-4837-9bd9-25edb048dcbe" config-ref="HTTP_Listener_config" path="/global-error-handler"/>
+		<http:request method="GET" doc:name="Request" doc:id="62133aa6-b88e-4587-b379-b6e08eab61e0" config-ref="PropagateRequest" path="/test"/>
 	</flow>
 </mule>

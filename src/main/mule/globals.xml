@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
 	<db:config name="Database_Config1" doc:name="Database Config" doc:id="daff6412-50cc-4f91-ba71-2179b4c0397f" >
@@ -15,4 +15,16 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 	<file:config name="File_Config" doc:name="File Config" doc:id="00ac1dbf-f15e-4983-bff0-02c87aca1a86" >
 		<file:connection workingDir="/Users/nurudin/AnypointStudio/studio-workspace/mule_udemy_project/Files" />
 	</file:config>
+	<configuration doc:name="Configuration" doc:id="6ce763e6-9eed-4aa2-b88a-f41601f4bc2a" defaultErrorHandler-ref="mule_global_error_handler" doc:description="set global error handler">
+	</configuration>
+	<error-handler name="mule_global_error_handler" doc:id="c22747ca-116d-467e-beb2-6b681cf055fd" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="df8f8cf3-51ca-4f33-acf0-38d1227ed424" type="ANY">
+			<logger level="ERROR" doc:name="Globally Log on Error Propagate" doc:id="6c112368-672b-4dcd-86ca-81cfd40318e3" message='#[" on error propagate global element"]'/>
+			<set-payload value='#[%dw 2.0&#10;&#10;output application/json&#10;---&#10;{&#10;	"message": "on error propagate from global elements"&#10;	&#10;}]' doc:name="Set Payload" doc:id="b08eeb03-136a-48f0-ae59-23581caf76a4" />
+		</on-error-propagate>
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="c13edcdb-2e10-4338-9c57-0262afb59c6f" type="ANY">
+			<logger level="ERROR" doc:name="Globally log on error continue" doc:id="66c6edc2-a1ac-423e-b406-17988be3655f" message='#["Globally log on error continue using global elements"]'/>
+			<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"message" : "Global log on error continue"&#10;}]' doc:name="Set Payload" doc:id="11397796-ff38-435f-846a-ffd1d6d4239d" />
+		</on-error-continue>
+	</error-handler>
 </mule>
